@@ -1,48 +1,35 @@
-// src/index.ts
-import "dotenv/config"; // load .env BEFORE anything else
-
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { z } from "zod";
-import { env } from "./env";
-import { supabaseAdmin } from "./supabase";
-import { evaluateAnswer } from "./ai";
-
+import quizRoutes from "./routes/quiz.routes";
+import rewardsRoutes from "./routes/rewards.routes";
+import parentRoutes from "./routes/parent.routes";
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const AnswerSchema = z.object({
-  childId: z.string().min(1),
-  question: z.string().min(1),
-  answer: z.string().min(1),
-});
-
 app.get("/health", (_req, res) => res.json({ ok: true }));
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-app.use((req, _res, next) => {
-  console.log(`[API] ${req.method} ${req.url}`);
-  next();
+app.use("/quiz", quizRoutes);
+app.use("/rewards", rewardsRoutes); // GET /rewards/:childId
+app.use("/parent", parentRoutes); // GET /parent/attempts?childId=...
+// 404 JSON
+app.use((req, res) => {
+  res
+    .status(404)
+    .json({ error: `Not found: ${req.method} ${req.originalUrl}` });
 });
 
-app.post("/api/answer", async (req, res) => {
-  const parsed = AnswerSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Bad payload" });
-
-  const { childId, question, answer } = parsed.data;
-  const { correct, companionText } = evaluateAnswer(question, answer);
-
-  // write log to Supabase (server-side)
-  if (supabaseAdmin) {
-    await supabaseAdmin.from("parent_logs").insert({
-      child_id: childId, question, answer, correct
-    });
-  }
-
-  res.json({ correct, companionText });
+// ERROR JSON (key fix)
+app.use((err: any, _req: any, res: any, _next: any) => {
+  const status = err?.status || 500;
+  console.error("Error:", err); // visible in terminal
+  res.status(status).json({
+    error: err?.message || "Internal Server Error",
+    details: process.env.NODE_ENV !== "production" ? err : undefined,
+  });
 });
 
-app.listen(env.PORT, () => {
-  console.log(`API running on :${env.PORT}`);
-});
+app.listen(process.env.PORT || 4000, () =>
+  console.log(`API running on :${process.env.PORT || 4000}`)
+);
