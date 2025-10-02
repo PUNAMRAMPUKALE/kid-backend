@@ -1,0 +1,12 @@
+{
+
+  "scripts": {
+    "dev": "ts-node src/bootstrap.ts",
+    "start": "ts-node src/bootstrap.ts",
+    "build": "tsc"
+  },
+
+  "devDependencies": {
+    "@types/cors": "^2.8.19"
+  }
+}
