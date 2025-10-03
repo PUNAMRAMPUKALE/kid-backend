@@ -5,7 +5,10 @@ import quizRoutes from "./routes/quiz.routes";
 import rewardsRoutes from "./routes/rewards.routes";
 import parentRoutes from "./routes/parent.routes";
 const app = express();
-app.use(cors());
+
+// tighten CORS using env (we’ll set ALLOW_ORIGIN in Render)
+const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN || "*"; // set to frontend URL after deploy
+app.use(cors({ origin: ALLOW_ORIGIN }));
 app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
